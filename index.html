@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+
+  <style type="text/css">
+    html, body, #app {
+      height: 100%;
+      width: 100%;
+    }
+
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 1rem;
+    }
+
+    canvas {
+      border: 3px solid #bbb;
+      box-sizing: border-box;
+      display: block;
+      margin: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="500" height="375" />
+
+  <script type="module">
+    import './game.mjs'
+  </script>
+</body>
+</html>
