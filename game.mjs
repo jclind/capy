@@ -7,8 +7,8 @@ import { generatePlatforms } from './platforms.mjs'
 
 const canvas = document.getElementById("canvas")
 const c = canvas.getContext("2d")
-const tileWidth = 25
-const tileHeight = 25
+const tileWidth = 32
+const tileHeight = 32
 const xTiles = 20
 const yTiles = 15
 
@@ -43,9 +43,44 @@ x_x______x_________x
 xxxxxxxxxxxxxxxxxxxx
 `
 
-// Initial player position
-const player = new PlayerClass(c, 1 * tileWidth, 13 * tileHeight, tileWidth, tileHeight)
-const platformTiles = generatePlatforms(c, tileWidth, tileHeight, map)
+let player, platformTiles
+
+const sprites = {
+  capybaraRight: {
+    path: './sprites/capybara-right.png',
+  },
+  capybaraLeft: {
+    path: './sprites/capybara-left.png',
+  },
+}
+
+async function main() {
+  // Load the sprites into images
+  await Promise.all(Object.keys(sprites).map(spriteName => new Promise((resolve, reject) => {
+    const image = new Image()
+    image.src = sprites[spriteName].path
+    image.onload = () => {
+      // Make sure sprites are pixelated and not blurry
+      c.mozImageSmoothingEnabled = false
+      c.webkitImageSmoothingEnabled = false
+      c.msImageSmoothingEnabled = false
+      c.imageSmoothingEnabled = false
+      sprites[spriteName].image = image
+      resolve()
+    }
+  })))
+
+  // Initial player position
+  player = new PlayerClass(c, 1 * tileWidth, 13 * tileHeight, tileWidth, tileHeight, {
+    right: sprites.capybaraRight.image,
+    left: sprites.capybaraLeft.image,
+  })
+  platformTiles = generatePlatforms(c, tileWidth, tileHeight, map)
+
+  requestAnimationFrame(animate)
+}
+
+main()
 
 let frameLimit = 1000
 
@@ -149,5 +184,3 @@ function collision (object1, object2) {
   }
   return false
 }
-
-requestAnimationFrame(animate)

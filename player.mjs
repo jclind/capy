@@ -1,20 +1,24 @@
 export default class Player {
-  constructor (c, x, y, width, height) {
+  constructor (c, x, y, width, height, sprites) {
     this.c = c
     this.x = x
     this.y = y
     this.width = width
     this.height = height
+    this.sprites = sprites
 
     this.jumping = false
+    this.direction = 'right'
     this.verticalVelocity = 0
   }
 
   update (pressedKeys) {
     if (pressedKeys.right) {
+      this.direction = 'right'
       this.x += 2.5
     }
     if (pressedKeys.left) {
+      this.direction = 'left'
       this.x -= 2.5
     }
     if (pressedKeys.up) {
@@ -56,10 +60,6 @@ export default class Player {
   }
 
   draw () {
-    this.c.fillStyle = 'brown'
-    this.c.beginPath()
-    const radius = this.width / 2
-    this.c.arc(this.x + radius, this.y + radius, radius, 0, 2 * Math.PI)
-    this.c.fill()
+    this.c.drawImage(this.sprites[this.direction], 0, 0, 32, 32, this.x, this.y, this.width, this.height)
   }
 }
