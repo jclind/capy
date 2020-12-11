@@ -25,22 +25,25 @@ const pressedKeys = {
   down: false,
 }
 
+// We draw extra platforms outside the bounds of the screen on the left, top,
+// and right so the player can't go out of bounds.
 let map = `
-xxxxxxxxxxxxxxxxxxxx
-x__________________x
-x__________________x
-x__________________x
-x__________________x
-x__________________x
-x__________________x
-x__________________x
-x_xxxx_____________x
-x__________________x
-x_____xxxxxx_______x
-x__________________x
-x_____________xxxxxx
-x_x______x_________x
-xxxxxxxxxxxxxxxxxxxx
+======================
+=                    =
+=                    =
+=                    =
+=                    =
+=               =    =
+=                    =
+=                    =
+=   b                =
+=  ====              =
+=                    =
+=      ======        =
+=                    =
+=              ===== =
+=         =          =
+======================
 `
 
 let player, platformTiles
@@ -48,9 +51,17 @@ let player, platformTiles
 const sprites = {
   capybaraRight: {
     path: './sprites/capybara-right.png',
+    frames: 2,
   },
   capybaraLeft: {
     path: './sprites/capybara-left.png',
+    frames: 2,
+  },
+  platform: {
+    path: './sprites/platform.png',
+  },
+  boots: {
+    path: './sprites/boots.png',
   },
 }
 
@@ -72,10 +83,13 @@ async function main() {
 
   // Initial player position
   player = new PlayerClass(c, 1 * tileWidth, 13 * tileHeight, tileWidth, tileHeight, {
-    right: sprites.capybaraRight.image,
-    left: sprites.capybaraLeft.image,
+    right: sprites.capybaraRight,
+    left: sprites.capybaraLeft,
   })
-  platformTiles = generatePlatforms(c, tileWidth, tileHeight, map)
+  platformTiles = generatePlatforms(c, tileWidth, tileHeight, map, {
+    '=': sprites.platform,
+    'b': sprites.boots,
+  })
 
   requestAnimationFrame(animate)
 }
@@ -85,8 +99,12 @@ main()
 let frameLimit = 1000
 
 function animate () {
-  c.fillStyle = 'white'
-  c.fillRect(0, 0, tileWidth * xTiles, tileHeight * yTiles)
+  // Draw the background
+  var gradient = c.createLinearGradient(0, 0, 0, tileHeight * yTiles);
+  gradient.addColorStop(0, '#51c1ff');
+  gradient.addColorStop(1, 'white');
+  c.fillStyle = gradient;
+  c.fillRect(0, 0, tileWidth * xTiles, tileHeight * yTiles);
 
   player.update(pressedKeys)
 
