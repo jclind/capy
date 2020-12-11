@@ -7,14 +7,14 @@ export function generatePlatforms (c, tileWidth, tileHeight, platformTiles) {
   for (let i = 0; i < platformLayers.length; i++) {
     for (let j = 0; j < platformLayers[i].length; j++) {
 
-        if (platformLayers[i].charAt(j) == 'x') {
-            tileXPos = tileWidth * (j)
-            tileYPos = tileHeight * (i)
+      if (platformLayers[i].charAt(j) == 'x') {
+        tileXPos = tileWidth * (j)
+        tileYPos = tileHeight * (i)
 
-            let currTile = new PlatformTile(c, tileXPos, tileYPos, tileWidth, tileHeight)
-            platformTilesList.push(currTile)
+        let currTile = new PlatformTile(c, tileXPos, tileYPos, tileWidth, tileHeight)
+        platformTilesList.push(currTile)
 
-        }
+      }
     }
   }
   return platformTilesList
