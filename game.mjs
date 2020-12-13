@@ -1,16 +1,11 @@
+import g from './globals.mjs'
 import PlayerClass from './player.mjs'
+import ItemClass from './item.mjs'
 import { generatePlatforms } from './platforms.mjs'
 
 (function () {
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
 })()
-
-const canvas = document.getElementById("canvas")
-const c = canvas.getContext("2d")
-const tileWidth = 32
-const tileHeight = 32
-const xTiles = 20
-const yTiles = 15
 
 const keyMap = {
   a: 'left',
@@ -33,20 +28,20 @@ let map = `
 =                    =
 =                    =
 =                    =
-=               =    =
+=                    =
+=               H    =
 =                    =
 =                    =
-=   b                =
-=  ====              =
+=  [==]              =
 =                    =
-=      ======        =
+=      [====]        =
 =                    =
-=              ===== =
-=         =          =
+=              [===] =
+=         H          =
 ======================
 `
 
-let player, platformTiles
+let player, platformTiles, boots
 
 const sprites = {
   capybaraRight: {
@@ -60,8 +55,23 @@ const sprites = {
   platform: {
     path: './sprites/platform.png',
   },
-  boots: {
-    path: './sprites/boots.png',
+  platformLeft: {
+    path: './sprites/platform-left.png',
+  },
+  platformRight: {
+    path: './sprites/platform-right.png',
+  },
+  platformBoth: {
+    path: './sprites/platform-both.png',
+  },
+  bootsSolo: {
+    path: './sprites/boots-solo.png',
+  },
+  bootsWornLeft: {
+    path: './sprites/boots-worn-left.png',
+  },
+  bootsWornRight: {
+    path: './sprites/boots-worn-right.png',
   },
 }
 
@@ -72,23 +82,33 @@ async function main() {
     image.src = sprites[spriteName].path
     image.onload = () => {
       // Make sure sprites are pixelated and not blurry
-      c.mozImageSmoothingEnabled = false
-      c.webkitImageSmoothingEnabled = false
-      c.msImageSmoothingEnabled = false
-      c.imageSmoothingEnabled = false
+      g.ctx.mozImageSmoothingEnabled = false
+      g.ctx.webkitImageSmoothingEnabled = false
+      g.ctx.msImageSmoothingEnabled = false
+      g.ctx.imageSmoothingEnabled = false
       sprites[spriteName].image = image
       resolve()
     }
   })))
 
   // Initial player position
-  player = new PlayerClass(c, 1 * tileWidth, 13 * tileHeight, tileWidth, tileHeight, {
+  player = new PlayerClass(g.ctx, 1 * g.tileWidth, 13 * g.tileHeight, g.tileWidth, g.tileHeight, {
     right: sprites.capybaraRight,
     left: sprites.capybaraLeft,
+    bootsWorn: {
+      left: sprites.bootsWornLeft,
+      right: sprites.bootsWornRight,
+    },
   })
-  platformTiles = generatePlatforms(c, tileWidth, tileHeight, map, {
+  boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
+    solo: sprites.bootsSolo,
+    worn: sprites.bootsWorn,
+  })
+  platformTiles = generatePlatforms(g.ctx, g.tileWidth, g.tileHeight, map, {
     '=': sprites.platform,
-    'b': sprites.boots,
+    '[': sprites.platformLeft,
+    ']': sprites.platformRight,
+    'H': sprites.platformBoth,
   })
 
   requestAnimationFrame(animate)
@@ -100,11 +120,12 @@ let frameLimit = 1000
 
 function animate () {
   // Draw the background
-  var gradient = c.createLinearGradient(0, 0, 0, tileHeight * yTiles);
-  gradient.addColorStop(0, '#51c1ff');
-  gradient.addColorStop(1, 'white');
-  c.fillStyle = gradient;
-  c.fillRect(0, 0, tileWidth * xTiles, tileHeight * yTiles);
+  var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
+  gradient.addColorStop(0, '#3A555C');
+  gradient.addColorStop(.5, '#4B8094');
+  gradient.addColorStop(1, '#4B8094');
+  g.ctx.fillStyle = gradient;
+  g.ctx.fillRect(0, 0, g.tileWidth * g.xTiles, g.tileHeight * g.yTiles);
 
   player.update(pressedKeys)
 
@@ -112,6 +133,16 @@ function animate () {
     const collisionDetails = collision(player, platformTile)
     if (collisionDetails) {
       player.collide(collisionDetails)
+    }
+  }
+
+  if (boots) {
+    if (collision(player, boots)) {
+      player.wearing.boots = true
+      boots = null
+    }
+    else {
+      boots.draw()
     }
   }
 

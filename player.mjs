@@ -1,3 +1,5 @@
+import g from './globals.mjs'
+
 export default class Player {
   constructor (c, x, y, width, height, sprites) {
     this.c = c
@@ -12,6 +14,7 @@ export default class Player {
     this.verticalVelocity = 0
     this.distanceSinceLastAnimation = 0
     this.spriteFrame = 0
+    this.wearing = {}
   }
 
   update (pressedKeys) {
@@ -28,7 +31,7 @@ export default class Player {
     if (pressedKeys.up) {
       if (!this.jumping) {
         this.jumping = true
-        this.verticalVelocity = -8
+        this.verticalVelocity = this.wearing.boots ? -13 : -8
       }
     }
 
@@ -36,11 +39,11 @@ export default class Player {
     const gravity = .5
     this.y += this.verticalVelocity
     this.verticalVelocity = this.verticalVelocity + gravity
-    if (this.verticalVelocity > 10) {
-      this.verticalVelocity = 10
+    if (this.verticalVelocity > 20) {
+      this.verticalVelocity = 20
     }
-    if (this.verticalVelocity < -10) {
-      this.verticalVelocity = -10
+    if (this.verticalVelocity < -20) {
+      this.verticalVelocity = -20
     }
   }
 
@@ -64,24 +67,39 @@ export default class Player {
   }
 
   draw () {
-    const sprite = this.sprites[this.direction]
+    const playerSprite = this.sprites[this.direction]
 
     // Advance to the next frame in the sprite animation
     if (this.distanceSinceLastAnimation >= 15) {
       this.distanceSinceLastAnimation = 0
-      this.spriteFrame = (this.spriteFrame + 1) % (sprite.frames)
+      this.spriteFrame = (this.spriteFrame + 1) % (playerSprite.frames)
     }
 
     this.c.drawImage(
-      sprite.image,
+      playerSprite.image,
       0, // source x
-      this.spriteFrame * 32, // source y
-      32, // source width
-      32, // source height
+      this.spriteFrame * g.tileHeight / g.spriteRatio, // source y
+      g.tileWidth / g.spriteRatio, // source width
+      g.tileHeight / g.spriteRatio, // source height
       this.x, // destination x
       this.y, // destination y
       this.width, // destination width
       this.height, // destination height
     )
+
+    if (this.wearing.boots) {
+      const bootsSprite = this.sprites.bootsWorn[this.direction]
+      this.c.drawImage(
+        bootsSprite.image,
+        0, // source x
+        this.spriteFrame * g.tileHeight / g.spriteRatio, // source y
+        g.tileWidth / g.spriteRatio, // source width
+        g.tileHeight / g.spriteRatio, // source height
+        this.x, // destination x
+        this.y, // destination y
+        this.width, // destination width
+        this.height, // destination height
+      )
+    }
   }
 }

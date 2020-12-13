@@ -1,18 +1,18 @@
 import g from './globals.mjs'
 
-export default class PlatformTile {
-  constructor (c, x, y, width, height, sprite) {
+export default class Item {
+  constructor (c, x, y, sprites) {
     this.c = c
     this.x = x
     this.y = y
-    this.width = width
-    this.height = height
-    this.sprite = sprite
+    this.width = g.tileWidth
+    this.height = g.tileHeight
+    this.sprites = sprites
   }
 
   draw () {
     this.c.drawImage(
-      this.sprite.image,
+      this.sprites.solo.image,
       0, // source x
       0, // source y
       g.tileWidth / g.spriteRatio, // source width
