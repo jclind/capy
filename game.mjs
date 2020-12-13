@@ -1,6 +1,7 @@
 import g from './globals.mjs'
 import PlayerClass from './player.mjs'
 import ItemClass from './item.mjs'
+import PlatformClass from './platform.mjs'
 import { generatePlatforms } from './platforms.mjs'
 
 (function () {
@@ -42,6 +43,8 @@ let map = `
 `
 
 let player, platformTiles, boots
+let platforms = []
+let timeSinceLastPlatform = 0
 
 const sprites = {
   capybaraRight: {
@@ -76,6 +79,9 @@ const sprites = {
 }
 
 async function main() {
+  canvas.width = window.innerWidth
+  canvas.height = window.innerHeight
+
   // Load the sprites into images
   await Promise.all(Object.keys(sprites).map(spriteName => new Promise((resolve, reject) => {
     const image = new Image()
@@ -92,7 +98,7 @@ async function main() {
   })))
 
   // Initial player position
-  player = new PlayerClass(g.ctx, 1 * g.tileWidth, 13 * g.tileHeight, g.tileWidth, g.tileHeight, {
+  player = new PlayerClass(g.ctx, 5 * g.tileWidth, 13 * g.tileHeight, g.tileWidth, g.tileHeight, {
     right: sprites.capybaraRight,
     left: sprites.capybaraLeft,
     bootsWorn: {
@@ -100,16 +106,17 @@ async function main() {
       right: sprites.bootsWornRight,
     },
   })
-  boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
-    solo: sprites.bootsSolo,
-    worn: sprites.bootsWorn,
-  })
-  platformTiles = generatePlatforms(g.ctx, g.tileWidth, g.tileHeight, map, {
-    '=': sprites.platform,
-    '[': sprites.platformLeft,
-    ']': sprites.platformRight,
-    'H': sprites.platformBoth,
-  })
+  platforms.push(generatePlatform())
+  // boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
+  //   solo: sprites.bootsSolo,
+  //   worn: sprites.bootsWorn,
+  // })
+  // platformTiles = generatePlatforms(g.ctx, g.tileWidth, g.tileHeight, map, {
+  //   '=': sprites.platform,
+  //   '[': sprites.platformLeft,
+  //   ']': sprites.platformRight,
+  //   'H': sprites.platformBoth,
+  // })
 
   requestAnimationFrame(animate)
 }
@@ -118,19 +125,33 @@ main()
 
 let frameLimit = 1000
 
+function generatePlatform () {
+  // xxx round to 32: Math.ceil(number/100)*100
+  return new PlatformClass({
+    x: g.tileWidth * 3,
+    y: canvas.height - 10 * g.tileHeight,
+    width: Math.floor(Math.random() * Math.floor(canvas.width)),
+  })
+}
+
 function animate () {
   // Draw the background
   var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
   gradient.addColorStop(0, '#3A555C');
-  gradient.addColorStop(.5, '#4B8094');
   gradient.addColorStop(1, '#4B8094');
   g.ctx.fillStyle = gradient;
-  g.ctx.fillRect(0, 0, g.tileWidth * g.xTiles, g.tileHeight * g.yTiles);
+  g.ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (timeSinceLastPlatform++ > 50) {
+    console.log('generating')
+    platforms.push(generatePlatform())
+    timeSinceLastPlatform = 0
+  }
 
   player.update(pressedKeys)
 
-  for (const platformTile of platformTiles) {
-    const collisionDetails = collision(player, platformTile)
+  for (const platform of platforms) {
+    const collisionDetails = collision(player, platform)
     if (collisionDetails) {
       player.collide(collisionDetails)
     }
@@ -148,8 +169,8 @@ function animate () {
 
   player.draw()
 
-  for (const platformTile of platformTiles) {
-    platformTile.draw()
+  for (const platform of platforms) {
+    platform.draw()
   }
 
   if (frameLimit-- > 0) {
