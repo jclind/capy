@@ -9,19 +9,38 @@ export default class Platform {
     this.sprites = sprites
   }
 
+  update () {
+    this.y -= 2
+  }
+
   draw () {
-    g.ctx.fillStyle = 'white'
-    g.ctx.fillRect(this.x, this.y, this.width, this.height)
-    // this.c.drawImage(
-    //   this.sprite.image,
-    //   0, // source x
-    //   0, // source y
-    //   g.tileWidth / g.spriteRatio, // source width
-    //   g.tileHeight / g.spriteRatio, // source height
-    //   this.x, // destination x
-    //   this.y, // destination y
-    //   this.width, // destination width
-    //   this.height, // destination height
-    // )
+    const totalTiles = this.width / g.tileWidth
+    for (let i = 0; i < totalTiles; i++) {
+      let sprite
+      if (this.width === g.tileWidth) {
+        sprite = this.sprites.both
+      }
+      else if (i === 0) {
+        sprite = this.sprites.left
+      }
+      else if (i === totalTiles - 1) {
+        sprite = this.sprites.right
+      }
+      else {
+        sprite = this.sprites.middle
+      }
+
+      g.ctx.drawImage(
+        sprite.image,
+        0, // source x
+        0, // source y
+        g.tileWidth / g.spriteRatio, // source width
+        g.tileHeight / g.spriteRatio, // source height
+        this.x + i * g.tileWidth, // destination x
+        this.y, // destination y
+        g.tileWidth, // destination width
+        this.height, // destination height
+      )
+    }
   }
 }

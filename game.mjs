@@ -21,27 +21,6 @@ const pressedKeys = {
   down: false,
 }
 
-// We draw extra platforms outside the bounds of the screen on the left, top,
-// and right so the player can't go out of bounds.
-let map = `
-======================
-=                    =
-=                    =
-=                    =
-=                    =
-=                    =
-=               H    =
-=                    =
-=                    =
-=  [==]              =
-=                    =
-=      [====]        =
-=                    =
-=              [===] =
-=         H          =
-======================
-`
-
 let player, platformTiles, boots
 let platforms = []
 let timeSinceLastPlatform = 0
@@ -55,7 +34,7 @@ const sprites = {
     path: './sprites/capybara-left.png',
     frames: 2,
   },
-  platform: {
+  platformMiddle: {
     path: './sprites/platform.png',
   },
   platformLeft: {
@@ -98,7 +77,7 @@ async function main() {
   })))
 
   // Initial player position
-  player = new PlayerClass(g.ctx, 5 * g.tileWidth, 13 * g.tileHeight, g.tileWidth, g.tileHeight, {
+  player = new PlayerClass(g.ctx, 5 * g.tileWidth, 5 * g.tileHeight, g.tileWidth, g.tileHeight, {
     right: sprites.capybaraRight,
     left: sprites.capybaraLeft,
     bootsWorn: {
@@ -106,7 +85,7 @@ async function main() {
       right: sprites.bootsWornRight,
     },
   })
-  platforms.push(generatePlatform())
+  platforms.push(...generateRow())
   // boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
   //   solo: sprites.bootsSolo,
   //   worn: sprites.bootsWorn,
@@ -125,13 +104,72 @@ main()
 
 let frameLimit = 1000
 
-function generatePlatform () {
-  // xxx round to 32: Math.ceil(number/100)*100
-  return new PlatformClass({
-    x: g.tileWidth * 3,
-    y: canvas.height - 10 * g.tileHeight,
-    width: Math.floor(Math.random() * Math.floor(canvas.width)),
-  })
+function generateRow () {
+  // How many tiles wide is the canvas?
+  const canvasXTiles = Math.floor(canvas.width / g.tileWidth)
+
+  // Set initial probabilities of starting/continuing platforms
+  const probOfStartingPlatform = 0.1
+  const probOfContinuingPlatform = 0.975
+
+  // Set the amounts by which the above probabilities should change for every
+  // additional start/continuation
+  const startingProbSteps = 0.05
+  const continuingProbSteps = 0.05
+
+  // Initialize the current probabilities which will be modified as tiles are
+  // generated
+  let curStartingProb = probOfStartingPlatform
+  let curContinuingProb = probOfContinuingPlatform
+
+  let curPlatform = null
+  let platforms = []
+  for (let i = 0; i < canvasXTiles; i++) {
+    if (curPlatform) {
+      // There is a existing platform
+      if (Math.random() <= curContinuingProb) {
+        // Add to the existing platform
+        curPlatform.width += g.tileWidth
+        curContinuingProb -= continuingProbSteps
+      }
+      else {
+        // Finish the platform
+        platforms.push(curPlatform)
+        curPlatform = null
+        curContinuingProb = probOfContinuingPlatform
+      }
+    }
+    else {
+      // There is NOT an existing platform
+      let rand = Math.random()
+      if (rand <= curStartingProb) {
+        // Start a new platform
+        curPlatform = new PlatformClass({
+          x: i * g.tileWidth,
+          y: canvas.height,
+          width: g.tileWidth,
+          sprites: {
+            left: sprites.platformLeft,
+            middle: sprites.platformMiddle,
+            right: sprites.platformRight,
+            both: sprites.platformBoth,
+          }
+        })
+        curStartingProb = probOfStartingPlatform
+      }
+      else {
+        // Don't start a platform
+        curStartingProb += startingProbSteps
+      }
+    }
+  }
+
+  // If we still have an open platform, end it
+  if (curPlatform) {
+    platforms.push(curPlatform)
+  }
+
+  return platforms
 }
 
 function animate () {
@@ -143,19 +181,28 @@ function animate () {
   g.ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (timeSinceLastPlatform++ > 50) {
-    console.log('generating')
-    platforms.push(generatePlatform())
+    platforms.push(...generateRow())
     timeSinceLastPlatform = 0
   }
 
   player.update(pressedKeys)
 
+  // Copy the platforms to a new array, excluding any that have risen out of the
+  // top of the screen
+  let newPlatforms = []
   for (const platform of platforms) {
+    platform.update()
+    if (platform.y + g.tileHeight >= 0) {
+      // The platform hasn't yet fallen off the top of the screen, so keep it
+      newPlatforms.push(platform)
+    }
+
     const collisionDetails = collision(player, platform)
     if (collisionDetails) {
       player.collide(collisionDetails)
     }
   }
+  platforms = newPlatforms
 
   if (boots) {
     if (collision(player, boots)) {

@@ -20,30 +20,31 @@ export default class Player {
   update (pressedKeys) {
     if (pressedKeys.right) {
       this.direction = 'right'
-      this.x += 2.5
-      this.distanceSinceLastAnimation += 2.5
+      this.x += 3.5
+      this.distanceSinceLastAnimation += 3.5
     }
     if (pressedKeys.left) {
       this.direction = 'left'
-      this.x -= 2.5
-      this.distanceSinceLastAnimation += 2.5
+      this.x -= 3.5
+      this.distanceSinceLastAnimation += 3.5
     }
     if (pressedKeys.up) {
       if (!this.jumping) {
         this.jumping = true
-        this.verticalVelocity = this.wearing.boots ? -13 : -8
+        this.verticalVelocity = this.wearing.boots ? -20 : -13
       }
     }
 
     // Update vertical position based on velocity
     const gravity = .5
+    const maxVelocity = 25
     this.y += this.verticalVelocity
     this.verticalVelocity = this.verticalVelocity + gravity
-    if (this.verticalVelocity > 20) {
-      this.verticalVelocity = 20
+    if (this.verticalVelocity > maxVelocity) {
+      this.verticalVelocity = maxVelocity
     }
-    if (this.verticalVelocity < -20) {
-      this.verticalVelocity = -20
+    if (this.verticalVelocity < -maxVelocity) {
+      this.verticalVelocity = -maxVelocity
     }
   }
 
