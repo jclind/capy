@@ -3,6 +3,7 @@ import PlayerClass from './player.mjs'
 import ItemClass from './item.mjs'
 import PlatformClass from './platform.mjs'
 import EnemyClass from './enemy.mjs'
+import ScoreClass from './score.mjs'
 import { generatePlatforms } from './platforms.mjs'
 import utils from './utils.mjs'
 
@@ -23,10 +24,11 @@ const pressedKeys = {
   down: false,
 }
 
-let player, platformTiles, boots
+let player, platformTiles, boots, score
 let platforms = []
 let enemies = []
 let timeSinceLastPlatform = 0
+let startTime = (new Date()).getTime()
 
 const sprites = {
   capybaraRight: {
@@ -97,6 +99,12 @@ async function main() {
     },
   })
   platforms.push(...generateRow())
+
+  score = new ScoreClass({
+    x: g.tileWidth,
+    y: g.tileHeight,
+    value: 0,
+  })
 
   // boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
   //   solo: sprites.bootsSolo,
@@ -229,9 +237,14 @@ function animate () {
 
   player.update(pressedKeys)
 
+  let newEnemies = []
   for (const enemy of enemies) {
     enemy.update()
+    if (enemy.y + g.tileHeight >= 0) {
+      newEnemies.push(enemy)
+    }
   }
+  enemies = newEnemies
 
   // Copy the platforms to a new array, excluding any that have risen out of the
   // top of the screen
@@ -257,6 +270,9 @@ function animate () {
   }
   platforms = newPlatforms
 
+  const curTime = (new Date()).getTime()
+  score.value = Math.floor((curTime - startTime) / 1000 * 5) + 1
+
   if (boots) {
     if (collision(player, boots)) {
       player.wearing.boots = true
@@ -276,6 +292,8 @@ function animate () {
   for (const enemy of enemies) {
     enemy.draw()
   }
+
+  score.draw()
 
   if (frameLimit-- > 0) {
     requestAnimationFrame(animate)
