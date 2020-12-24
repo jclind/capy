@@ -1,7 +1,7 @@
 import g from './globals.mjs'
 
 export default class Platform {
-  constructor ({x, y, width, sprites}) {
+  constructor ({ x, y, width, sprites }) {
     this.x = x
     this.y = y
     this.width = width

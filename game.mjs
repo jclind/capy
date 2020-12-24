@@ -2,7 +2,9 @@ import g from './globals.mjs'
 import PlayerClass from './player.mjs'
 import ItemClass from './item.mjs'
 import PlatformClass from './platform.mjs'
+import EnemyClass from './enemy.mjs'
 import { generatePlatforms } from './platforms.mjs'
+import utils from './utils.mjs'
 
 (function () {
   window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
@@ -23,6 +25,7 @@ const pressedKeys = {
 
 let player, platformTiles, boots
 let platforms = []
+let enemies = []
 let timeSinceLastPlatform = 0
 
 const sprites = {
@@ -55,6 +58,14 @@ const sprites = {
   bootsWornRight: {
     path: './sprites/boots-worn-right.png',
   },
+  snekLeft: {
+    path: './sprites/snek-left.png',
+    frames: 2,
+  },
+  snekRight: {
+    path: './sprites/snek-right.png',
+    frames: 2,
+  },
 }
 
 async function main() {
@@ -86,6 +97,7 @@ async function main() {
     },
   })
   platforms.push(...generateRow())
+
   // boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
   //   solo: sprites.bootsSolo,
   //   worn: sprites.bootsWorn,
@@ -146,7 +158,9 @@ function generateRow () {
         // Start a new platform
         curPlatform = new PlatformClass({
           x: i * g.tileWidth,
-          y: canvas.height,
+          // Start the platform two tiles below the bottom of the screen to
+          // allow room for enemies on top
+          y: canvas.height + g.tileHeight,
           width: g.tileWidth,
           sprites: {
             left: sprites.platformLeft,
@@ -172,6 +186,25 @@ function generateRow () {
   return platforms
 }
 
+function generateEnemy (platforms) {
+  if (!platforms || !platforms.length) {
+    return
+  }
+  const platform = utils.randArrayItem(platforms)
+  const platformXTiles = platform.width / g.tileWidth
+  const enemyTile = utils.randIntBetween(0, platformXTiles)
+
+  return new EnemyClass({
+    x: platform.x + enemyTile * g.tileWidth,
+    y: platform.y - g.tileHeight,
+    sprites: {
+      left: sprites.snekLeft,
+      right: sprites.snekRight,
+    },
+    platform,
+  })
+}
+
 function animate () {
   // Draw the background
   var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
@@ -181,11 +214,24 @@ function animate () {
   g.ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (timeSinceLastPlatform++ > 50) {
-    platforms.push(...generateRow())
     timeSinceLastPlatform = 0
+    const newPlatforms = generateRow()
+    platforms.push(...newPlatforms)
+
+    if (Math.random() < 1/3) {
+      // Generate an enemy on one of the platforms we just generated
+      const newEnemy = generateEnemy(newPlatforms)
+      if (newEnemy) {
+        enemies.push(newEnemy)
+      }
+    }
   }
 
   player.update(pressedKeys)
+
+  for (const enemy of enemies) {
+    enemy.update()
+  }
 
   // Copy the platforms to a new array, excluding any that have risen out of the
   // top of the screen
@@ -197,9 +243,16 @@ function animate () {
       newPlatforms.push(platform)
     }
 
-    const collisionDetails = collision(player, platform)
+    let collisionDetails = collision(player, platform)
     if (collisionDetails) {
       player.collide(collisionDetails)
+    }
+
+    for (const enemy of enemies) {
+      collisionDetails = collision(enemy, platform)
+      if (collisionDetails) {
+        enemy.collide(collisionDetails)
+      }
     }
   }
   platforms = newPlatforms
@@ -218,6 +271,10 @@ function animate () {
 
   for (const platform of platforms) {
     platform.draw()
+  }
+
+  for (const enemy of enemies) {
+    enemy.draw()
   }
 
   if (frameLimit-- > 0) {
