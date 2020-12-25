@@ -1,15 +1,15 @@
 import g from './globals.mjs'
 import PlayerClass from './player.mjs'
-import ItemClass from './item.mjs'
-import PlatformClass from './platform.mjs'
 import EnemyClass from './enemy.mjs'
 import ScoreClass from './score.mjs'
-import { generatePlatforms } from './platforms.mjs'
+import { generatePlatformRow } from './platforms.mjs'
 import utils from './utils.mjs'
 
-(function () {
-  window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msRequestAnimationFrame
-})()
+window.requestAnimationFrame =
+  window.requestAnimationFrame ||
+  window.mozRequestAnimationFrame ||
+  window.webkitRequestAnimationFrame ||
+  window.msRequestAnimationFrame
 
 const keyMap = {
   a: 'left',
@@ -24,7 +24,7 @@ const pressedKeys = {
   down: false,
 }
 
-let player, platformTiles, boots, score
+let player, boots, score
 let platforms = []
 let enemies = []
 let timeSinceLastPlatform = 0
@@ -70,170 +70,35 @@ const sprites = {
   },
 }
 
+main()
+
+// Initialize the game before starting the render loop
 async function main() {
   canvas.width = window.innerWidth
   canvas.height = window.innerHeight
 
-  // Load the sprites into images
-  await Promise.all(Object.keys(sprites).map(spriteName => new Promise((resolve, reject) => {
-    const image = new Image()
-    image.src = sprites[spriteName].path
-    image.onload = () => {
-      // Make sure sprites are pixelated and not blurry
-      g.ctx.mozImageSmoothingEnabled = false
-      g.ctx.webkitImageSmoothingEnabled = false
-      g.ctx.msImageSmoothingEnabled = false
-      g.ctx.imageSmoothingEnabled = false
-      sprites[spriteName].image = image
-      resolve()
-    }
-  })))
+  await loadSpriteImages()
 
-  // Initial player position
-  player = new PlayerClass(g.ctx, 5 * g.tileWidth, 5 * g.tileHeight, g.tileWidth, g.tileHeight, {
-    right: sprites.capybaraRight,
-    left: sprites.capybaraLeft,
-    bootsWorn: {
-      left: sprites.bootsWornLeft,
-      right: sprites.bootsWornRight,
-    },
-  })
-  platforms.push(...generateRow())
+  player = initPlayer()
 
-  score = new ScoreClass({
-    x: g.tileWidth,
-    y: g.tileHeight,
-    value: 0,
-  })
+  platforms.push(...generatePlatformRow({
+    platformMiddle: sprites.platformMiddle,
+    platformLeft: sprites.platformLeft,
+    platformRight: sprites.platformRight,
+    platformBoth: sprites.platformBoth,
+  }))
 
-  // boots = new ItemClass(g.ctx, 3 * g.tileWidth, 7 * g.tileHeight, {
-  //   solo: sprites.bootsSolo,
-  //   worn: sprites.bootsWorn,
-  // })
-  // platformTiles = generatePlatforms(g.ctx, g.tileWidth, g.tileHeight, map, {
-  //   '=': sprites.platform,
-  //   '[': sprites.platformLeft,
-  //   ']': sprites.platformRight,
-  //   'H': sprites.platformBoth,
-  // })
+  score = initScore()
 
-  requestAnimationFrame(animate)
+  // Kick off the game loop
+  requestAnimationFrame(gameLoop)
 }
 
-main()
+// Runs for every frame
+function gameLoop () {
+  drawBackground()
 
-let frameLimit = 1000
-
-function generateRow () {
-  // How many tiles wide is the canvas?
-  const canvasXTiles = Math.floor(canvas.width / g.tileWidth)
-
-  // Set initial probabilities of starting/continuing platforms
-  const probOfStartingPlatform = 0.1
-  const probOfContinuingPlatform = 0.975
-
-  // Set the amounts by which the above probabilities should change for every
-  // additional start/continuation
-  const startingProbSteps = 0.05
-  const continuingProbSteps = 0.05
-
-  // Initialize the current probabilities which will be modified as tiles are
-  // generated
-  let curStartingProb = probOfStartingPlatform
-  let curContinuingProb = probOfContinuingPlatform
-
-  let curPlatform = null
-  let platforms = []
-  for (let i = 0; i < canvasXTiles; i++) {
-    if (curPlatform) {
-      // There is a existing platform
-      if (Math.random() <= curContinuingProb) {
-        // Add to the existing platform
-        curPlatform.width += g.tileWidth
-        curContinuingProb -= continuingProbSteps
-      }
-      else {
-        // Finish the platform
-        platforms.push(curPlatform)
-        curPlatform = null
-        curContinuingProb = probOfContinuingPlatform
-      }
-    }
-    else {
-      // There is NOT an existing platform
-      let rand = Math.random()
-      if (rand <= curStartingProb) {
-        // Start a new platform
-        curPlatform = new PlatformClass({
-          x: i * g.tileWidth,
-          // Start the platform two tiles below the bottom of the screen to
-          // allow room for enemies on top
-          y: canvas.height + g.tileHeight,
-          width: g.tileWidth,
-          sprites: {
-            left: sprites.platformLeft,
-            middle: sprites.platformMiddle,
-            right: sprites.platformRight,
-            both: sprites.platformBoth,
-          }
-        })
-        curStartingProb = probOfStartingPlatform
-      }
-      else {
-        // Don't start a platform
-        curStartingProb += startingProbSteps
-      }
-    }
-  }
-
-  // If we still have an open platform, end it
-  if (curPlatform) {
-    platforms.push(curPlatform)
-  }
-
-  return platforms
-}
-
-function generateEnemy (platforms) {
-  if (!platforms || !platforms.length) {
-    return
-  }
-  const platform = utils.randArrayItem(platforms)
-  const platformXTiles = platform.width / g.tileWidth
-  const enemyTile = utils.randIntBetween(0, platformXTiles)
-
-  return new EnemyClass({
-    x: platform.x + enemyTile * g.tileWidth,
-    y: platform.y - g.tileHeight,
-    sprites: {
-      left: sprites.snekLeft,
-      right: sprites.snekRight,
-    },
-    platform,
-  })
-}
-
-function animate () {
-  // Draw the background
-  var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
-  gradient.addColorStop(0, '#3A555C');
-  gradient.addColorStop(1, '#4B8094');
-  g.ctx.fillStyle = gradient;
-  g.ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  if (timeSinceLastPlatform++ > 50) {
-    timeSinceLastPlatform = 0
-    const newPlatforms = generateRow()
-    platforms.push(...newPlatforms)
-
-    if (Math.random() < 1/3) {
-      // Generate an enemy on one of the platforms we just generated
-      const newEnemy = generateEnemy(newPlatforms)
-      if (newEnemy) {
-        enemies.push(newEnemy)
-      }
-    }
-  }
+  generateTiles()
 
   player.update(pressedKeys)
 
@@ -241,6 +106,7 @@ function animate () {
   for (const enemy of enemies) {
     enemy.update()
     if (enemy.y + g.tileHeight >= 0) {
+      // The enemy hasn't yet fallen off the top of the screen, so keep it
       newEnemies.push(enemy)
     }
   }
@@ -273,17 +139,52 @@ function animate () {
   const curTime = (new Date()).getTime()
   score.value = Math.floor((curTime - startTime) / 1000 * 5) + 1
 
-  if (boots) {
-    if (collision(player, boots)) {
-      player.wearing.boots = true
-      boots = null
-    }
-    else {
-      boots.draw()
-    }
+  if (boots && collision(player, boots)) {
+    player.wearing.boots = true
+    boots = null
   }
 
-  player.draw()
+  draw()
+
+  if (frameLimit-- > 0) {
+    requestAnimationFrame(gameLoop)
+  }
+}
+
+let frameLimit = 1000
+
+function generateEnemy (platforms) {
+  if (!platforms || !platforms.length) {
+    return
+  }
+  const platform = utils.randArrayItem(platforms)
+  const platformXTiles = platform.width / g.tileWidth
+  const enemyTile = utils.randIntBetween(0, platformXTiles)
+
+  return new EnemyClass({
+    x: platform.x + enemyTile * g.tileWidth,
+    y: platform.y - g.tileHeight,
+    sprites: {
+      left: sprites.snekLeft,
+      right: sprites.snekRight,
+    },
+    platform,
+  })
+}
+
+function drawBackground () {
+  // Draw the background
+  var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
+  gradient.addColorStop(0, '#3A555C');
+  gradient.addColorStop(1, '#4B8094');
+  g.ctx.fillStyle = gradient;
+  g.ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function draw () {
+  if (boots) {
+    boots.draw()
+  }
 
   for (const platform of platforms) {
     platform.draw()
@@ -293,11 +194,69 @@ function animate () {
     enemy.draw()
   }
 
-  score.draw()
+  player.draw()
 
-  if (frameLimit-- > 0) {
-    requestAnimationFrame(animate)
+  score.draw()
+}
+
+// Generate platforms, enemies, etc.
+function generateTiles () {
+  if (timeSinceLastPlatform++ > 50) {
+    timeSinceLastPlatform = 0
+    const newPlatforms = generatePlatformRow({
+      platformMiddle: sprites.platformMiddle,
+      platformLeft: sprites.platformLeft,
+      platformRight: sprites.platformRight,
+      platformBoth: sprites.platformBoth,
+    })
+    platforms.push(...newPlatforms)
+
+    if (Math.random() < 1/3) {
+      // Generate an enemy on one of the platforms we just generated
+      const newEnemy = generateEnemy(newPlatforms)
+      if (newEnemy) {
+        enemies.push(newEnemy)
+      }
+    }
   }
+}
+
+// Load the sprites into images
+async function loadSpriteImages () {
+  await Promise.all(Object.keys(sprites).map(spriteName => new Promise((resolve) => {
+    const image = new Image()
+    image.src = sprites[spriteName].path
+    image.onload = () => {
+      // Make sure sprites are pixelated and not blurry
+      g.ctx.mozImageSmoothingEnabled = false
+      g.ctx.webkitImageSmoothingEnabled = false
+      g.ctx.msImageSmoothingEnabled = false
+      g.ctx.imageSmoothingEnabled = false
+      sprites[spriteName].image = image
+      resolve()
+    }
+  })))
+}
+
+// Initialize the player and their position
+function initPlayer () {
+  return new PlayerClass(g.ctx, 5 * g.tileWidth, 5 * g.tileHeight, g.tileWidth, g.tileHeight, {
+    right: sprites.capybaraRight,
+    left: sprites.capybaraLeft,
+    bootsWorn: {
+      left: sprites.bootsWornLeft,
+      right: sprites.bootsWornRight,
+    },
+  })
+}
+
+// Initialize score tracker
+function initScore () {
+  return new ScoreClass({
+    x: g.tileWidth,
+    y: g.tileHeight,
+    value: 0,
+  })
 }
 
 window.addEventListener('keydown', function (event) {
