@@ -2,9 +2,6 @@ import PlatformClass from './platform.mjs'
 import g from './globals.mjs'
 
 export function generatePlatformRow (platformSprites) {
-  // How many tiles wide is the canvas?
-  const canvasXTiles = Math.floor(canvas.width / g.tileWidth)
-
   // Set initial probabilities of starting/continuing platforms
   const probOfStartingPlatform = 0.1
   const probOfContinuingPlatform = 0.975
@@ -21,7 +18,7 @@ export function generatePlatformRow (platformSprites) {
 
   let curPlatform = null
   let platforms = []
-  for (let i = 0; i < canvasXTiles; i++) {
+  for (let i = 0; i < g.xTiles; i++) {
     if (curPlatform) {
       // There is a existing platform
       if (Math.random() <= curContinuingProb) {

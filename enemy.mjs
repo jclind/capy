@@ -1,5 +1,5 @@
 import g from './globals.mjs'
-import utils from './utils.mjs'
+import { randArrayItem } from './utils.mjs'
 
 export default class Enemy {
   constructor ({ x, y, sprites, platform }) {
@@ -11,7 +11,7 @@ export default class Enemy {
     this.width = g.tileWidth
     this.height = g.tileHeight
 
-    this.direction = utils.randArrayItem(['right', 'left'])
+    this.direction = randArrayItem(['right', 'left'])
     this.distanceSinceLastAnimation = 0
     this.spriteFrame = 0
     this.speed = 1

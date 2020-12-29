@@ -2,8 +2,9 @@ import g from './globals.mjs'
 import PlayerClass from './player.mjs'
 import EnemyClass from './enemy.mjs'
 import ScoreClass from './score.mjs'
+import LifeTrackerClass from './lifeTracker.mjs'
 import { generatePlatformRow } from './platforms.mjs'
-import utils from './utils.mjs'
+import { randArrayItem, randIntBetween } from './utils.mjs'
 
 window.requestAnimationFrame =
   window.requestAnimationFrame ||
@@ -24,11 +25,11 @@ const pressedKeys = {
   down: false,
 }
 
-let player, boots, score
+let player, boots, score, lifeTracker
 let platforms = []
 let enemies = []
 let timeSinceLastPlatform = 0
-let startTime = (new Date()).getTime()
+const startingLives = 3
 
 const sprites = {
   capybaraRight: {
@@ -37,6 +38,14 @@ const sprites = {
   },
   capybaraLeft: {
     path: './sprites/capybara-left.png',
+    frames: 2,
+  },
+  capybaraRightDamaged: {
+    path: './sprites/capybara-right-damaged.png',
+    frames: 2,
+  },
+  capybaraLeftDamaged: {
+    path: './sprites/capybara-left-damaged.png',
     frames: 2,
   },
   platformMiddle: {
@@ -68,15 +77,18 @@ const sprites = {
     path: './sprites/snek-right.png',
     frames: 2,
   },
+  heartFull: {
+    path: './sprites/heart-full.png',
+  },
+  heartEmpty: {
+    path: './sprites/heart-empty.png',
+  },
 }
 
 main()
 
 // Initialize the game before starting the render loop
 async function main() {
-  canvas.width = window.innerWidth
-  canvas.height = window.innerHeight
-
   await loadSpriteImages()
 
   player = initPlayer()
@@ -90,13 +102,15 @@ async function main() {
 
   score = initScore()
 
+  lifeTracker = initLifeTracker()
+
   // Kick off the game loop
   requestAnimationFrame(gameLoop)
 }
 
 // Runs for every frame
 function gameLoop () {
-  drawBackground()
+  let nextLoop = gameLoop
 
   generateTiles()
 
@@ -105,6 +119,26 @@ function gameLoop () {
   let newEnemies = []
   for (const enemy of enemies) {
     enemy.update()
+
+    // Player collision
+    let collision = getCollision(player, enemy)
+    if (collision) {
+      if (collision.direction === 'down') {
+        // The player jumped on top of the enemy, so delete the enemy
+        score.value += 10000
+        continue
+      }
+      else {
+        player.enemyCollision(collision)
+        lifeTracker.lives--
+        if (lifeTracker.lives <= 0) {
+          // Initiate the game over loop after finishing this loop's iteration
+          // (so we draw zero hearts and show the player being damaged)
+          nextLoop = gameOver
+        }
+      }
+    }
+
     if (enemy.y + g.tileHeight >= 0) {
       // The enemy hasn't yet fallen off the top of the screen, so keep it
       newEnemies.push(enemy)
@@ -122,24 +156,24 @@ function gameLoop () {
       newPlatforms.push(platform)
     }
 
-    let collisionDetails = collision(player, platform)
-    if (collisionDetails) {
-      player.collide(collisionDetails)
+    let collision = getCollision(player, platform)
+    if (collision) {
+      player.hardCollision(collision)
     }
 
     for (const enemy of enemies) {
-      collisionDetails = collision(enemy, platform)
-      if (collisionDetails) {
-        enemy.collide(collisionDetails)
+      // Platform collision
+      collision = getCollision(enemy, platform)
+      if (collision) {
+        enemy.collide(collision)
       }
     }
   }
   platforms = newPlatforms
 
-  const curTime = (new Date()).getTime()
-  score.value = Math.floor((curTime - startTime) / 1000 * 5) + 1
+  score.incrementTimePoints()
 
-  if (boots && collision(player, boots)) {
+  if (boots && getCollision(player, boots)) {
     player.wearing.boots = true
     boots = null
   }
@@ -147,8 +181,22 @@ function gameLoop () {
   draw()
 
   if (frameLimit-- > 0) {
-    requestAnimationFrame(gameLoop)
+    requestAnimationFrame(nextLoop)
   }
+}
+
+function gameOver () {
+  g.ctx.font = '48px monospace'
+  g.ctx.textAlign = 'center'
+  g.ctx.textBaseline = 'middle'
+
+  // Draw the text shadow
+  g.ctx.fillStyle = 'black'
+  g.ctx.fillText('Game over', g.canvasWidth / 2, g.canvasHeight / 2 + 3)
+
+  // Draw the text
+  g.ctx.fillStyle = 'yellow'
+  g.ctx.fillText('Game over', g.canvasWidth / 2, g.canvasHeight / 2)
 }
 
 let frameLimit = 1000
@@ -157,9 +205,9 @@ function generateEnemy (platforms) {
   if (!platforms || !platforms.length) {
     return
   }
-  const platform = utils.randArrayItem(platforms)
+  const platform = randArrayItem(platforms)
   const platformXTiles = platform.width / g.tileWidth
-  const enemyTile = utils.randIntBetween(0, platformXTiles)
+  const enemyTile = randIntBetween(0, platformXTiles)
 
   return new EnemyClass({
     x: platform.x + enemyTile * g.tileWidth,
@@ -172,16 +220,14 @@ function generateEnemy (platforms) {
   })
 }
 
-function drawBackground () {
+function draw () {
   // Draw the background
   var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
   gradient.addColorStop(0, '#3A555C');
   gradient.addColorStop(1, '#4B8094');
   g.ctx.fillStyle = gradient;
   g.ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
 
-function draw () {
   if (boots) {
     boots.draw()
   }
@@ -197,6 +243,8 @@ function draw () {
   player.draw()
 
   score.draw()
+
+  lifeTracker.draw()
 }
 
 // Generate platforms, enemies, etc.
@@ -243,6 +291,8 @@ function initPlayer () {
   return new PlayerClass(g.ctx, 5 * g.tileWidth, 5 * g.tileHeight, g.tileWidth, g.tileHeight, {
     right: sprites.capybaraRight,
     left: sprites.capybaraLeft,
+    rightDamaged: sprites.capybaraRightDamaged,
+    leftDamaged: sprites.capybaraLeftDamaged,
     bootsWorn: {
       left: sprites.bootsWornLeft,
       right: sprites.bootsWornRight,
@@ -255,7 +305,20 @@ function initScore () {
   return new ScoreClass({
     x: g.tileWidth,
     y: g.tileHeight,
-    value: 0,
+  })
+}
+
+// Initialize life tracker
+function initLifeTracker () {
+  return new LifeTrackerClass({
+    x: g.canvasWidth - (startingLives * g.tileWidth) - g.tileWidth,
+    y: g.tileHeight,
+    sprites: {
+      heartFull: sprites.heartFull,
+      heartEmpty: sprites.heartEmpty,
+    },
+    lifeCapacity: startingLives,
+    lives: startingLives,
   })
 }
 
@@ -272,7 +335,7 @@ window.addEventListener('keyup', function (event) {
 // it returns an object with the direction of the collision from object1's
 // perspective and the location of the collision (x pos or y pos depending on
 // the direction).
-function collision (object1, object2) {
+function getCollision (object1, object2) {
   const o1Right = object1.x + object1.width
   const o1Left = object1.x
   const o1Bottom = object1.y + object1.height
