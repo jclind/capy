@@ -97,6 +97,29 @@ export default class Player {
     this.yVelocity = -5
     this.y -= 5
 
+    this.startDamage()
+  }
+
+  // If the player hits the ceiling or floor, launch them away
+  outOfBoundsCollision (collision) {
+    const { direction, location } = collision
+
+    // First reset the player's position as if they hit a hard obstacle
+    this.hardCollision(collision)
+
+    if (direction === 'up') {
+      this.yVelocity = 5
+      this.y -= 5
+    }
+    else {
+      this.yVelocity = -10
+      this.y += 5
+    }
+
+    this.startDamage()
+  }
+
+  startDamage () {
     this.damageStartTime = new Date().getTime()
   }
 

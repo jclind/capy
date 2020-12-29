@@ -3,6 +3,7 @@ import PlayerClass from './player.mjs'
 import EnemyClass from './enemy.mjs'
 import ScoreClass from './score.mjs'
 import LifeTrackerClass from './lifeTracker.mjs'
+import BoundaryClass from './boundary.mjs'
 import { generatePlatformRow } from './platforms.mjs'
 import { randArrayItem, randIntBetween } from './utils.mjs'
 
@@ -25,9 +26,10 @@ const pressedKeys = {
   down: false,
 }
 
-let player, boots, score, lifeTracker
+let player, boots, score, lifeTracker, floor, ceiling
 let platforms = []
 let enemies = []
+let walls = []
 let timeSinceLastPlatform = 0
 const startingLives = 3
 
@@ -100,6 +102,10 @@ async function main() {
     platformBoth: sprites.platformBoth,
   }))
 
+  walls = generateWalls()
+  floor = generateFloor()
+  ceiling = generateCeiling()
+
   score = initScore()
 
   lifeTracker = initLifeTracker()
@@ -120,7 +126,7 @@ function gameLoop () {
   for (const enemy of enemies) {
     enemy.update()
 
-    // Player collision
+    // Player enemy collision
     let collision = getCollision(player, enemy)
     if (collision) {
       if (collision.direction === 'down') {
@@ -131,11 +137,6 @@ function gameLoop () {
       else {
         player.enemyCollision(collision)
         lifeTracker.lives--
-        if (lifeTracker.lives <= 0) {
-          // Initiate the game over loop after finishing this loop's iteration
-          // (so we draw zero hearts and show the player being damaged)
-          nextLoop = gameOver
-        }
       }
     }
 
@@ -145,6 +146,13 @@ function gameLoop () {
     }
   }
   enemies = newEnemies
+
+  // Check for ceiling/floor collisions
+  const collision = getCollision(player, ceiling) || getCollision(player, floor)
+  if (collision) {
+    player.outOfBoundsCollision(collision)
+    lifeTracker.lives--
+  }
 
   // Copy the platforms to a new array, excluding any that have risen out of the
   // top of the screen
@@ -171,6 +179,13 @@ function gameLoop () {
   }
   platforms = newPlatforms
 
+  for (const wall of walls) {
+    let collision = getCollision(player, wall)
+    if (collision) {
+      player.hardCollision(collision)
+    }
+  }
+
   score.incrementTimePoints()
 
   if (boots && getCollision(player, boots)) {
@@ -179,6 +194,10 @@ function gameLoop () {
   }
 
   draw()
+
+  if (lifeTracker.lives <= 0) {
+    nextLoop = gameOver
+  }
 
   if (frameLimit-- > 0) {
     requestAnimationFrame(nextLoop)
@@ -240,6 +259,12 @@ function draw () {
     enemy.draw()
   }
 
+  for (const wall of walls) {
+    wall.draw()
+  }
+  ceiling.draw()
+  floor.draw()
+
   player.draw()
 
   score.draw()
@@ -267,6 +292,43 @@ function generateTiles () {
       }
     }
   }
+}
+
+function generateWalls () {
+  return [
+    // Left wall
+    new BoundaryClass({
+      x: -g.tileWidth,
+      y: 0,
+      width: g.tileWidth,
+      height: g.canvasHeight,
+    }),
+    // Right wall
+    new BoundaryClass({
+      x: g.canvasWidth,
+      y: 0,
+      width: g.tileWidth,
+      height: g.canvasHeight,
+    }),
+  ]
+}
+
+function generateFloor () {
+  return new BoundaryClass({
+    x: 0,
+    y: g.canvasHeight - g.tileHeight / 2,
+    width: g.canvasWidth,
+    height: g.tileHeight,
+  })
+}
+
+function generateCeiling () {
+  return new BoundaryClass({
+    x: 0,
+    y: -g.tileHeight,
+    width: g.canvasWidth,
+    height: g.tileHeight,
+  })
 }
 
 // Load the sprites into images

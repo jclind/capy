@@ -49,7 +49,8 @@ export function generatePlatformRow (platformSprites) {
             middle: platformSprites.platformMiddle,
             right: platformSprites.platformRight,
             both: platformSprites.platformBoth,
-          }
+          },
+          scroll: true,
         })
         curStartingProb = probOfStartingPlatform
       }

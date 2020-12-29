@@ -45,7 +45,7 @@ export default class Enemy {
     this.distanceSinceLastAnimation += 3
   }
 
-  // There was a collision between the player and this tile
+  // There was a collision between the platform and this tile
   collide ({ direction, location }) {
     if (direction === 'up') {
       this.y = location
