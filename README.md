@@ -16,3 +16,7 @@ Thoughts
   - minigame where you try to balance oranges on your head
 - maybe you can jump on enemy heads
 - Alternate game: platforms scroll up from the bottom of the screen and you have to find a way down before you hit the top of the screen
+
+To do:
+
+- Add mobile support (clickable controls at bottom)

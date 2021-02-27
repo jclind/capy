@@ -1,3 +1,4 @@
+import { playSound } from './audio.mjs'
 import g from './globals.mjs'
 
 export default class Player {
@@ -14,6 +15,7 @@ export default class Player {
     this.yVelocity = 0
     this.xVelocity = 0
     this.distanceSinceLastAnimation = 0
+    this.distanceSinceLastAudio = 0
     this.spriteFrame = 0
     this.wearing = {}
     this.damageStartTime = 0
@@ -24,16 +26,19 @@ export default class Player {
       this.direction = 'right'
       this.x += 3.5
       this.distanceSinceLastAnimation += 3.5
+      this.distanceSinceLastAudio += 3.5
     }
     if (pressedKeys.left) {
       this.direction = 'left'
       this.x -= 3.5
       this.distanceSinceLastAnimation += 3.5
+      this.distanceSinceLastAudio += 3.5
     }
     if (pressedKeys.up) {
       if (!this.jumping) {
         this.jumping = true
         this.yVelocity = this.wearing.boots ? -20 : -13
+        playSound('jump')
       }
     }
 
@@ -139,6 +144,11 @@ export default class Player {
     if (this.distanceSinceLastAnimation >= 15) {
       this.distanceSinceLastAnimation = 0
       this.spriteFrame = (this.spriteFrame + 1) % (playerSprite.frames)
+    }
+
+    if (this.distanceSinceLastAudio >= 40 && !this.jumping) {
+      playSound('walk')
+      this.distanceSinceLastAudio = 0
     }
 
     this.c.drawImage(

@@ -6,12 +6,9 @@ import LifeTrackerClass from './lifeTracker.mjs'
 import BoundaryClass from './boundary.mjs'
 import { generatePlatformRow } from './platforms.mjs'
 import { randArrayItem, randIntBetween } from './utils.mjs'
+import { playSound, playMusic, pauseMusic } from './audio.mjs'
 
-window.requestAnimationFrame =
-  window.requestAnimationFrame ||
-  window.mozRequestAnimationFrame ||
-  window.webkitRequestAnimationFrame ||
-  window.msRequestAnimationFrame
+const enableMusic = true
 
 const keyMap = {
   a: 'left',
@@ -110,6 +107,10 @@ async function main() {
 
   lifeTracker = initLifeTracker()
 
+  if (enableMusic) {
+    playMusic()
+  }
+
   // Kick off the game loop
   requestAnimationFrame(gameLoop)
 }
@@ -131,12 +132,13 @@ function gameLoop () {
     if (collision) {
       if (collision.direction === 'down') {
         // The player jumped on top of the enemy, so delete the enemy
+        playSound('enemyKilled')
         score.value += 10000
         continue
       }
       else {
+        damagePlayer()
         player.enemyCollision(collision)
-        lifeTracker.lives--
       }
     }
 
@@ -150,8 +152,8 @@ function gameLoop () {
   // Check for ceiling/floor collisions
   const collision = getCollision(player, ceiling) || getCollision(player, floor)
   if (collision) {
+    damagePlayer()
     player.outOfBoundsCollision(collision)
-    lifeTracker.lives--
   }
 
   // Copy the platforms to a new array, excluding any that have risen out of the
@@ -205,6 +207,9 @@ function gameLoop () {
 }
 
 function gameOver () {
+  pauseMusic()
+  playSound('gameOver')
+
   g.ctx.font = '48px monospace'
   g.ctx.textAlign = 'center'
   g.ctx.textBaseline = 'middle'
@@ -346,6 +351,11 @@ async function loadSpriteImages () {
       resolve()
     }
   })))
+}
+
+function damagePlayer () {
+  playSound('damage')
+  lifeTracker.lives--
 }
 
 // Initialize the player and their position

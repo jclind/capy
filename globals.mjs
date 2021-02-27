@@ -1,10 +1,10 @@
 const canvas = document.getElementById('canvas')
 
-canvas.width = window.innerWidth
-canvas.height = window.innerHeight
-
 const tileWidth = 32
 const tileHeight = 32
+
+canvas.width = tileWidth * 16
+canvas.height = window.innerHeight
 
 export default {
   ctx: canvas.getContext('2d'),

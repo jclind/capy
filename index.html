@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 
+  <link rel="prefetch" href="./audio/music.mp3">
+
   <style type="text/css">
     html, body {
       height: 100%;
@@ -14,11 +16,12 @@
     }
 
     body {
-      background: #333;
+      background: #3A555C;
       box-sizing: border-box;
     }
 
     canvas {
+      box-shadow: rgba(0, 0, 0, .2) 0 0 100px;
       box-sizing: border-box;
       display: block;
       margin: auto;
@@ -28,13 +31,9 @@
       image-rendering: -moz-crisp-edges;          /* Firefox                        */
       image-rendering: -o-crisp-edges;            /* Opera                          */
       image-rendering: -webkit-optimize-contrast; /* Chrome (and eventually Safari) */
-      image-rendering: pixelated; /* Chrome */
+      image-rendering: pixelated;                 /* Chrome */
       image-rendering: optimize-contrast;         /* CSS3 Proposed                  */
       -ms-interpolation-mode: nearest-neighbor;   /* IE8+                           */
-    }
-
-    img {
-      display: none;
     }
   </style>
 </head>
