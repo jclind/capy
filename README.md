@@ -20,3 +20,4 @@ Thoughts
 To do:
 
 - Add mobile support (clickable controls at bottom)
+- Simplify score-keeping by only tracking the number of snakes you kill
