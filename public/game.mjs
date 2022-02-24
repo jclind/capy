@@ -15,10 +15,14 @@ let frameLimit = null
 const enableMusic = true
 
 const keyMap = {
-  a: 'left',
-  d: 'right',
-  w: 'up',
-  s: 'down',
+  KeyA: 'left',
+  ArrowLeft: 'left',
+  KeyD: 'right',
+  ArrowRight: 'right',
+  KeyW: 'up',
+  ArrowUp: 'up',
+  Space: 'up',
+  KeyS: 'down',
 }
 const pressedKeys = {
   left: false,
@@ -100,18 +104,22 @@ async function main() {
   player = initPlayer()
 
   // Start with a 4-tile platform under the player in the middle of the screen
-  platforms.push(new PlatformClass({
-    x: Math.floor(((canvas.width / 2) - (g.tileWidth * 2)) / g.tileWidth) * g.tileWidth,
-    y: canvas.height + g.tileHeight,
-    width: g.tileWidth * 4,
-    sprites: {
-      left: sprites.platformLeft,
-      middle: sprites.platformMiddle,
-      right: sprites.platformRight,
-      both: sprites.platformBoth,
-    },
-    scroll: true,
-  }))
+  platforms.push(
+    new PlatformClass({
+      x:
+        Math.floor((canvas.width / 2 - g.tileWidth * 2) / g.tileWidth) *
+        g.tileWidth,
+      y: canvas.height + g.tileHeight,
+      width: g.tileWidth * 4,
+      sprites: {
+        left: sprites.platformLeft,
+        middle: sprites.platformMiddle,
+        right: sprites.platformRight,
+        both: sprites.platformBoth,
+      },
+      scroll: true,
+    })
+  )
 
   walls = generateWalls()
   floor = generateFloor()
@@ -124,22 +132,38 @@ async function main() {
   requestAnimationFrame(startScreen)
 }
 
-function startScreen () {
+function startScreen() {
   drawGame()
 
   const text = 'Start Game'
   const textWidth = g.ctx.measureText(text).width
 
   const xPadding = 20
-  const buttonWidth = textWidth + (xPadding * 2)
-  const buttonX = (g.canvasWidth / 2) - (textWidth / 2) - xPadding
-  const buttonY = (g.canvasHeight / 2) - (startButtonHeight / 2)
+  const buttonWidth = textWidth + xPadding * 2
+  const buttonX = g.canvasWidth / 2 - textWidth / 2 - xPadding
+  const buttonY = g.canvasHeight / 2 - startButtonHeight / 2
   g.ctx.fillStyle = 'white'
-  roundedRectangle(g.ctx, buttonX + 5, buttonY + 5,
-    buttonWidth, startButtonHeight, 8, true, false)
+  roundedRectangle(
+    g.ctx,
+    buttonX + 5,
+    buttonY + 5,
+    buttonWidth,
+    startButtonHeight,
+    8,
+    true,
+    false
+  )
   g.ctx.fillStyle = '#00a206'
-  roundedRectangle(g.ctx, buttonX, buttonY,
-    buttonWidth, startButtonHeight, 8, true, false)
+  roundedRectangle(
+    g.ctx,
+    buttonX,
+    buttonY,
+    buttonWidth,
+    startButtonHeight,
+    8,
+    true,
+    false
+  )
 
   g.ctx.font = '32px monospace'
   g.ctx.textAlign = 'center'
@@ -147,11 +171,26 @@ function startScreen () {
   g.ctx.fillStyle = 'white'
   g.ctx.fillText(text, g.canvasWidth / 2, g.canvasHeight / 2)
 
+  const instructionText = 'Press W, A, D or\n← ↑ → to move'
+  const instructionTextX = g.canvasWidth / 2
+  const instructionTextY = g.canvasHeight / 2 + startButtonHeight + 15
+  const lineHeight = 40
+  const instructionTextLines = instructionText.split('\n')
+
+  // Add line wrapping to instructionText
+  for (var i = 0; i < instructionTextLines.length; i++) {
+    g.ctx.fillText(
+      instructionTextLines[i],
+      instructionTextX,
+      instructionTextY + i * lineHeight
+    )
+  }
+
   gameLoaded = true
 }
 
 // Runs for every frame
-function gameLoop () {
+function gameLoop() {
   let nextLoop = gameLoop
 
   generateTiles()
@@ -170,8 +209,7 @@ function gameLoop () {
         playSound('enemyKilled')
         score.value += 10000
         continue
-      }
-      else {
+      } else {
         damagePlayer()
         player.enemyCollision(collision)
       }
@@ -241,7 +279,7 @@ function gameLoop () {
   }
 }
 
-function gameOver () {
+function gameOver() {
   pauseMusic()
   playSound('gameOver')
 
@@ -258,7 +296,7 @@ function gameOver () {
   g.ctx.fillText('Game over', g.canvasWidth / 2, g.canvasHeight / 2)
 }
 
-function startGame () {
+function startGame() {
   gameStarted = true
 
   if (enableMusic) {
@@ -268,7 +306,7 @@ function startGame () {
   requestAnimationFrame(gameLoop)
 }
 
-function generateEnemy (platforms) {
+function generateEnemy(platforms) {
   if (!platforms || !platforms.length) {
     return
   }
@@ -287,7 +325,7 @@ function generateEnemy (platforms) {
   })
 }
 
-function drawGame () {
+function drawGame() {
   drawBackground()
 
   if (boots) {
@@ -315,7 +353,7 @@ function drawGame () {
   lifeTracker.draw()
 }
 
-function drawBackground () {
+function drawBackground() {
   var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles)
   gradient.addColorStop(0, '#3A555C')
   gradient.addColorStop(1, '#4B8094')
@@ -324,7 +362,7 @@ function drawBackground () {
 }
 
 // Generate platforms, enemies, etc.
-function generateTiles () {
+function generateTiles() {
   if (timeSinceLastPlatform++ > 50) {
     timeSinceLastPlatform = 0
     const newPlatforms = generatePlatformRow({
@@ -335,7 +373,7 @@ function generateTiles () {
     })
     platforms.push(...newPlatforms)
 
-    if (Math.random() < 1/3) {
+    if (Math.random() < 1 / 3) {
       // Generate an enemy on one of the platforms we just generated
       const newEnemy = generateEnemy(newPlatforms)
       if (newEnemy) {
@@ -345,7 +383,7 @@ function generateTiles () {
   }
 }
 
-function generateWalls () {
+function generateWalls() {
   return [
     // Left wall
     new BoundaryClass({
@@ -364,7 +402,7 @@ function generateWalls () {
   ]
 }
 
-function generateFloor () {
+function generateFloor() {
   return new BoundaryClass({
     x: 0,
     y: g.canvasHeight - g.tileHeight / 2,
@@ -373,7 +411,7 @@ function generateFloor () {
   })
 }
 
-function generateCeiling () {
+function generateCeiling() {
   return new BoundaryClass({
     x: 0,
     y: -g.tileHeight,
@@ -383,34 +421,39 @@ function generateCeiling () {
 }
 
 // Load the sprites into images
-async function loadSpriteImages () {
-  await Promise.all(Object.keys(sprites).map(spriteName => new Promise((resolve) => {
-    const image = new Image()
-    image.src = sprites[spriteName].path
-    image.onload = () => {
-      // Make sure sprites are pixelated and not blurry
-      g.ctx.mozImageSmoothingEnabled = false
-      g.ctx.webkitImageSmoothingEnabled = false
-      g.ctx.msImageSmoothingEnabled = false
-      g.ctx.imageSmoothingEnabled = false
-      sprites[spriteName].image = image
-      resolve()
-    }
-  })))
+async function loadSpriteImages() {
+  await Promise.all(
+    Object.keys(sprites).map(
+      spriteName =>
+        new Promise(resolve => {
+          const image = new Image()
+          image.src = sprites[spriteName].path
+          image.onload = () => {
+            // Make sure sprites are pixelated and not blurry
+            g.ctx.mozImageSmoothingEnabled = false
+            g.ctx.webkitImageSmoothingEnabled = false
+            g.ctx.msImageSmoothingEnabled = false
+            g.ctx.imageSmoothingEnabled = false
+            sprites[spriteName].image = image
+            resolve()
+          }
+        })
+    )
+  )
 }
 
-function damagePlayer () {
+function damagePlayer() {
   playSound('damage')
   lifeTracker.lives--
 }
 
 // Initialize the player and their position. They start on top of the start
 // button, which is in the center of the screen.
-function initPlayer () {
+function initPlayer() {
   return new PlayerClass(
     g.ctx,
-    (g.canvasWidth / 2) - (g.tileWidth / 2),
-    (g.canvasHeight / 2) - (startButtonHeight / 2) - g.tileHeight,
+    g.canvasWidth / 2 - g.tileWidth / 2,
+    g.canvasHeight / 2 - startButtonHeight / 2 - g.tileHeight,
     g.tileWidth,
     g.tileHeight,
     {
@@ -427,7 +470,7 @@ function initPlayer () {
 }
 
 // Initialize score tracker
-function initScore () {
+function initScore() {
   return new ScoreClass({
     x: g.tileWidth,
     y: g.tileHeight,
@@ -435,9 +478,9 @@ function initScore () {
 }
 
 // Initialize life tracker
-function initLifeTracker () {
+function initLifeTracker() {
   return new LifeTrackerClass({
-    x: g.canvasWidth - (startingLives * g.tileWidth) - g.tileWidth,
+    x: g.canvasWidth - startingLives * g.tileWidth - g.tileWidth,
     y: g.tileHeight,
     sprites: {
       heartFull: sprites.heartFull,
@@ -448,30 +491,42 @@ function initLifeTracker () {
   })
 }
 
-window.addEventListener('keydown', function (event) {
-  if (gameLoaded && !gameStarted && event.key === 'Enter') {
-    startGame()
-  }
+window.addEventListener(
+  'keydown',
+  function (event) {
+    if (gameLoaded && !gameStarted && event.key === 'Enter') {
+      startGame()
+    }
 
-  let key = keyMap[event.key]
-  pressedKeys[key] = true
-}, false)
-window.addEventListener('keyup', function (event) {
-  let key = keyMap[event.key]
-  pressedKeys[key] = false
-}, false)
+    let key = keyMap[event.key]
+    pressedKeys[key] = true
+  },
+  false
+)
+window.addEventListener(
+  'keyup',
+  function (event) {
+    let key = keyMap[event.key]
+    pressedKeys[key] = false
+  },
+  false
+)
 
-canvas.addEventListener('click', function() {
-  if (gameLoaded && !gameStarted) {
-    startGame()
-  }
-}, false);
+canvas.addEventListener(
+  'click',
+  function () {
+    if (gameLoaded && !gameStarted) {
+      startGame()
+    }
+  },
+  false
+)
 
 // Checks for a collision between object1 and object2. If there is a collision
 // it returns an object with the direction of the collision from object1's
 // perspective and the location of the collision (x pos or y pos depending on
 // the direction).
-function getCollision (object1, object2) {
+function getCollision(object1, object2) {
   const o1Right = object1.x + object1.width
   const o1Left = object1.x
   const o1Bottom = object1.y + object1.height
