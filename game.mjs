@@ -1,11 +1,12 @@
 import g from './globals.mjs'
+import PlatformClass from './platform.mjs'
 import PlayerClass from './player.mjs'
 import EnemyClass from './enemy.mjs'
 import ScoreClass from './score.mjs'
 import LifeTrackerClass from './lifeTracker.mjs'
 import BoundaryClass from './boundary.mjs'
 import { generatePlatformRow } from './platforms.mjs'
-import { randArrayItem, randIntBetween } from './utils.mjs'
+import { randArrayItem, randIntBetween, roundedRectangle } from './utils.mjs'
 import { playSound, playMusic, pauseMusic } from './audio.mjs'
 
 const enableMusic = true
@@ -28,7 +29,10 @@ let platforms = []
 let enemies = []
 let walls = []
 let timeSinceLastPlatform = 0
+let gameLoaded = false
+let gameStarted = false
 const startingLives = 3
+const startButtonHeight = 75
 
 const sprites = {
   capybaraRight: {
@@ -92,11 +96,18 @@ async function main() {
 
   player = initPlayer()
 
-  platforms.push(...generatePlatformRow({
-    platformMiddle: sprites.platformMiddle,
-    platformLeft: sprites.platformLeft,
-    platformRight: sprites.platformRight,
-    platformBoth: sprites.platformBoth,
+  // Start with a 4-tile platform under the player in the middle of the screen
+  platforms.push(new PlatformClass({
+    x: Math.floor(((canvas.width / 2) - (g.tileWidth * 2)) / g.tileWidth) * g.tileWidth,
+    y: canvas.height + g.tileHeight,
+    width: g.tileWidth * 4,
+    sprites: {
+      left: sprites.platformLeft,
+      middle: sprites.platformMiddle,
+      right: sprites.platformRight,
+      both: sprites.platformBoth,
+    },
+    scroll: true,
   }))
 
   walls = generateWalls()
@@ -107,12 +118,33 @@ async function main() {
 
   lifeTracker = initLifeTracker()
 
-  if (enableMusic) {
-    playMusic()
-  }
+  requestAnimationFrame(startScreen)
+}
 
-  // Kick off the game loop
-  requestAnimationFrame(gameLoop)
+function startScreen () {
+  drawGame()
+
+  const text = 'Start Game'
+  const textWidth = g.ctx.measureText(text).width
+
+  const xPadding = 20
+  const buttonWidth = textWidth + (xPadding * 2)
+  const buttonX = (g.canvasWidth / 2) - (textWidth / 2) - xPadding
+  const buttonY = (g.canvasHeight / 2) - (startButtonHeight / 2)
+  g.ctx.fillStyle = 'white'
+  roundedRectangle(g.ctx, buttonX + 5, buttonY + 5,
+    buttonWidth, startButtonHeight, 8, true, false)
+  g.ctx.fillStyle = '#00a206'
+  roundedRectangle(g.ctx, buttonX, buttonY,
+    buttonWidth, startButtonHeight, 8, true, false)
+
+  g.ctx.font = '32px monospace'
+  g.ctx.textAlign = 'center'
+  g.ctx.textBaseline = 'middle'
+  g.ctx.fillStyle = 'white'
+  g.ctx.fillText(text, g.canvasWidth / 2, g.canvasHeight / 2)
+
+  gameLoaded = true
 }
 
 // Runs for every frame
@@ -195,7 +227,7 @@ function gameLoop () {
     boots = null
   }
 
-  draw()
+  drawGame()
 
   if (lifeTracker.lives <= 0) {
     nextLoop = gameOver
@@ -223,6 +255,16 @@ function gameOver () {
   g.ctx.fillText('Game over', g.canvasWidth / 2, g.canvasHeight / 2)
 }
 
+function startGame () {
+  gameStarted = true
+
+  if (enableMusic) {
+    playMusic()
+  }
+
+  requestAnimationFrame(gameLoop)
+}
+
 let frameLimit = 1000
 
 function generateEnemy (platforms) {
@@ -244,13 +286,8 @@ function generateEnemy (platforms) {
   })
 }
 
-function draw () {
-  // Draw the background
-  var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles);
-  gradient.addColorStop(0, '#3A555C');
-  gradient.addColorStop(1, '#4B8094');
-  g.ctx.fillStyle = gradient;
-  g.ctx.fillRect(0, 0, canvas.width, canvas.height);
+function drawGame () {
+  drawBackground()
 
   if (boots) {
     boots.draw()
@@ -275,6 +312,14 @@ function draw () {
   score.draw()
 
   lifeTracker.draw()
+}
+
+function drawBackground () {
+  var gradient = g.ctx.createLinearGradient(0, 0, 0, g.tileHeight * g.yTiles)
+  gradient.addColorStop(0, '#3A555C')
+  gradient.addColorStop(1, '#4B8094')
+  g.ctx.fillStyle = gradient
+  g.ctx.fillRect(0, 0, canvas.width, canvas.height)
 }
 
 // Generate platforms, enemies, etc.
@@ -358,18 +403,26 @@ function damagePlayer () {
   lifeTracker.lives--
 }
 
-// Initialize the player and their position
+// Initialize the player and their position. They start on top of the start
+// button, which is in the center of the screen.
 function initPlayer () {
-  return new PlayerClass(g.ctx, 5 * g.tileWidth, 5 * g.tileHeight, g.tileWidth, g.tileHeight, {
-    right: sprites.capybaraRight,
-    left: sprites.capybaraLeft,
-    rightDamaged: sprites.capybaraRightDamaged,
-    leftDamaged: sprites.capybaraLeftDamaged,
-    bootsWorn: {
-      left: sprites.bootsWornLeft,
-      right: sprites.bootsWornRight,
-    },
-  })
+  return new PlayerClass(
+    g.ctx,
+    (g.canvasWidth / 2) - (g.tileWidth / 2),
+    (g.canvasHeight / 2) - (startButtonHeight / 2) - g.tileHeight,
+    g.tileWidth,
+    g.tileHeight,
+    {
+      right: sprites.capybaraRight,
+      left: sprites.capybaraLeft,
+      rightDamaged: sprites.capybaraRightDamaged,
+      leftDamaged: sprites.capybaraLeftDamaged,
+      bootsWorn: {
+        left: sprites.bootsWornLeft,
+        right: sprites.bootsWornRight,
+      },
+    }
+  )
 }
 
 // Initialize score tracker
@@ -395,6 +448,10 @@ function initLifeTracker () {
 }
 
 window.addEventListener('keydown', function (event) {
+  if (gameLoaded && !gameStarted && event.key === 'Enter') {
+    startGame()
+  }
+
   let key = keyMap[event.key]
   pressedKeys[key] = true
 }, false)
@@ -402,6 +459,12 @@ window.addEventListener('keyup', function (event) {
   let key = keyMap[event.key]
   pressedKeys[key] = false
 }, false)
+
+canvas.addEventListener('click', function() {
+  if (gameLoaded && !gameStarted) {
+    startGame()
+  }
+}, false);
 
 // Checks for a collision between object1 and object2. If there is a collision
 // it returns an object with the direction of the collision from object1's
@@ -422,9 +485,6 @@ function getCollision (object1, object2) {
   const bottomEdgeCollision = o1Bottom > o2Top && o1Bottom <= o2Bottom
   const leftEdgeCollision = o1Left < o2Right && o1Left >= o2Left
   const topEdgeCollision = o1Top < o2Bottom && o1Top >= o2Top
-
-  const yCollision = bottomEdgeCollision || topEdgeCollision
-  const xCollision = rightEdgeCollision || leftEdgeCollision
 
   if (bottomEdgeCollision) {
     const bottomCollisionAmount = o1Bottom - o2Top

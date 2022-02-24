@@ -19,5 +19,6 @@ Thoughts
 
 To do:
 
-- Add mobile support (clickable controls at bottom)
+- Add mobile support (clickable controls at bottom): https://stackoverflow.com/questions/9880279/how-do-i-add-a-simple-onclick-event-handler-to-a-canvas-element
 - Simplify score-keeping by only tracking the number of snakes you kill
+- Add mute button

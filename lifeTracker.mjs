@@ -23,7 +23,7 @@ export default class LifeTracker {
       5,
       true,
       false,
-    );
+    )
 
     // Draw the hearts
     for (let i = 0; i < this.lifeCapacity; i++) {
