@@ -9,6 +9,9 @@ import { generatePlatformRow } from './platforms.mjs'
 import { randArrayItem, randIntBetween, roundedRectangle } from './utils.mjs'
 import { playSound, playMusic, pauseMusic } from './audio.mjs'
 
+// How many frames should the game run for? (for development)
+let frameLimit = null
+
 const enableMusic = true
 
 const keyMap = {
@@ -233,7 +236,7 @@ function gameLoop () {
     nextLoop = gameOver
   }
 
-  if (frameLimit-- > 0) {
+  if (frameLimit === null || frameLimit-- > 0) {
     requestAnimationFrame(nextLoop)
   }
 }
@@ -264,8 +267,6 @@ function startGame () {
 
   requestAnimationFrame(gameLoop)
 }
-
-let frameLimit = 1000
 
 function generateEnemy (platforms) {
   if (!platforms || !platforms.length) {
